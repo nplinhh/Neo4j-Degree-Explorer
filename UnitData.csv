@@ -1,0 +1,50 @@
+﻿code,title,cp,level,first_prerequisite,second_prerequisite,third_prerequisite,prohibited
+ACCT1001,Accounting 1A,12,1,,,,ACCT1005
+ACCT1002,Accounting 1B,12,2,,,,ACCT1006
+ACCT1005,"Accounting, Business and Society",12,1,,,,ACCT1001
+ACCT1006,Accounting and Financial Management,12,1,BUSS1030,,,ACCT1002
+ACCT2011,Financial Accounting A,6,2,"ACCT1001,ACCT1005,BUSS1030","ACCT1002,ACCT1006",,
+ACCT2012,Management Accounting,6,2,,,,ACCT2019
+ACCT2019,Management Accounting,6,2,"ACCT1001,ACCT1005,BUSS1030","ACCT1002,ACCT1006",,ACCT2012
+ACCT3011,Financial Accounting B,6,3,ACCT2011,,,
+ACCT3013,Financial Statement Analysis,6,3,ACCT2011 ,,,
+ACCT3014,Auditing and Assurance,6,3,,,,ACCT3600
+ACCT3031,International Corporate Governance,6,3,ACCT2011,,,
+ACCT3600,Accounting and Auditing in Practice,6,3,"ACCT2012,ACCT2019",ACCT3011,,ACCT3014
+BANK2011,Banking and the Financial System,6,2,DATA1001,,,
+BANK3011,Bank Financial Management,6,3,"BANK2011,FINC2011",,,
+BANK3012,Bank Supervision,6,3,"FINC2011,BANK2011",,,
+BANK3600,Banking in Practice,6,3,BANK3011,,,
+BUSS1020,Quantitative Business Analysis,6,1,,,,
+BUSS1030,"Accounting, Business and Society",6,1,,,,
+BUSS1040,Economics for Business Decision Making,6,1,,,,
+CLAW1001,Foundations of Business Law,6,1,,,,
+CLAW1003,Company Law,6,1,CLAW1001,,,
+CLAW2201,Corporate Law,6,2,,,,CLAW2214
+CLAW2214,Business Law,6,2,,,,CLAW2201
+COMP3927,Algorithm Design ,6,3,"MATH1004,MATH1064",INFO1103,INFO1105,
+DATA1001,Introduction to Data Analytics,6,1,,,,
+DATA2002,Data Analytics,6,2,,,,
+ECMT2110,Regression Modelling,6,2,,,,QBUS2810
+ECMT2620,Management Science,6,2,,,,QBUS2310
+ECMT3610,Advanced Management Science,6,3,,,,QBUS3310
+ECMT3710,Advanced Management Science,6,3,,,,QBUS3310
+ECOS2004,Money and Banking,6,2,BUSS1040,,,
+FINC2011,Corporate Finance I,6,2,DATA1001,,,
+IBUS3104,Ethical International Business Decisions,6,1,,,,
+INFO1103,Introduction to Programming,6,1,,,,
+INFO1105,Data Structure,6,1,,,,
+MATH1004,Discrete Mathematics,6,1,,,,
+MATH1064,Discrete Mathematics for Computation,6,1,,,,
+QBUS1040,Foundations of Business Analytics,6,1,BUSS1020,,,
+QBUS2310,Management Science,6,2,BUSS1020,,,ECMT2620
+QBUS2810,Statistical Modelling for Business,6,2,BUSS1020,,,ECMT2110
+QBUS2820,Predictive Analytics,6,2,"QBUS2810,ECMT2110,DATA2002",,,
+QBUS3310,Advanced Management Science,6,3,QBUS2310,,,"ECMT3610,ECMT3710"
+QBUS3330,Methods of Decision Analysis,6,3,"BUSS1020,DATA1001",,,
+QBUS3600,Business Analytics in Practice,6,3,,,,
+WORK1003,Foundations of Work and Employment,6,1,,,,
+WORK1004,Foundations of Management,6,1,,,,
+WORK2203,IR Policy and Processes,6,2,,,,
+WORK2204,"Gender, Diversity and Inclusion at Work",6,2,,,,
+WORK2205,HR Strategies and Processes,6,2,,,,

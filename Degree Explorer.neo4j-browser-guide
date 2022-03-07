@@ -1,0 +1,346 @@
+<article class="guide" >
+  <carousel class="deck container-fluid">
+    <slide class="row-fluid">
+    <div class="col-sm-4">
+      <h3>Load a CSV Document to inspect the content</h3>
+      <p>
+      To complete a degree, students have to finish
+      total credit and credits at each level. Students have to finish a total of 90 credits, comprising:
+      </p>
+       <ul>
+        <li> 30 credits from 1000 level units</li>
+        <li> 24 credits from 2000 level units </li>
+          <li> 24 credits from 3000 level units </li>
+      </ul>
+      <br>
+            <p>
+      We load the unit data from <strong><code>UnitData.csv</code></strong> file
+      ,which contains all units of study information.
+      Each unit has code name, title, credits point, level, prerequisites and prohibited requirement. The file has inforamation of 49 units
+      </p>
+            <br>
+             <p>
+             We have one degree node. The degree node has 4 properties represent the credits requirement that students have to complete in order to graduate.
+             (totalCred, levelOne, levelTwo and levelThree). Units can have prohibited relationships, which means students cannot take a course if they have not already completed its prohibited course.
+             Units can have prequisites relationship, which means students can only enrol a course if they have completed its prerequisites requirement. Prerequisites relationship can have OR, AND_1 and AND_2 properties. OR means student can take other courses mentioned in this properties instead of the course in the source node. AND_1 is list of courses student can take one of them to fulfil second prerequisite requirement(if there is any). AND_2 is a list of courses
+             student can take to fulfil the third prequisite requirement of the target node (if there is any).
+      </p>
+
+    </div>
+
+    <div class="col-sm-8">
+        <figure>
+        <pre class="pre-scrollable code runnable" >
+        Create(d:Degree{name: "Bachelor of ABC", totalCred:90, levelOne: 30, levelTwo: 24, levelThree:24})
+        </pre>
+      </figure>
+      <figcaption>Create Degree Requirement</figcaption>
+     <figure>
+        <pre class="pre-scrollable code runnable" >
+        LOAD CSV WITH HEADERS FROM 'file:///UnitData.csv' AS line
+        CREATE(unit:Unit {code: line.code, title:  line.title,
+        credit:toInteger(line.cp),level:line.level, 
+        prerequisite_1: split(line.first_prerequisite,","), 
+        prerequisite_2: split(line.second_prerequisite,","), 
+        prerequisite_3: split(line.third_prerequisite,","), 
+        prohibited: split(line.prohibited,",")})
+        </pre>
+      </figure>
+      <figcaption>Load data file. File: UnitData.csv</figcaption>
+           <figure>
+        <pre class="pre-scrollable code runnable" >
+        MATCH (u1:Unit), (u2:Unit)
+        WHERE u2.code IN u1.prohibited 
+        CREATE (u2)-[r:PROHIBITED]->(u1)
+
+        </pre>
+      </figure>
+      <figcaption>Create relationships between units that have prohibited requirement</figcaption>
+
+       <figure>
+        <pre class="pre-scrollable code runnable" >
+        MATCH (u1:Unit), (u2:Unit)
+        WHERE (u2.code IN u1.prerequisite_1)
+        CREATE (u2)-[r:PREREQUISITES {`OR`: [x IN u1.prerequisite_1 WHERE x <> u2.code], `AND_1`:u1.prerequisite_2,`AND_2`:u1.prerequisite_3 }]->(u1)
+        </pre>
+      </figure>
+      <figcaption>Create relationships between units and its first prerequisite requirement. Query 1</figcaption>
+
+       <figure>
+        <pre class="pre-scrollable code runnable" >
+        MATCH (u1:Unit), (u2:Unit)
+        WHERE (u2.code IN u1.prerequisite_2)
+        CREATE (u2)-[r:PREREQUISITES {`OR`: [x IN u1.prerequisite_2 WHERE x <> u2.code], `AND_1`:u1.prerequisite_1,`AND_2`:u1.prerequisite_3 }]->(u1)
+        </pre>
+      </figure>
+      <figcaption>Create relationships between units and its second prerequisites requirement. Query 2</figcaption>
+
+       <figure>
+        <pre class="pre-scrollable code runnable" >
+        MATCH (u1:Unit), (u2:Unit)
+        WHERE (u2.code IN u1.prerequisite_3)
+        CREATE (u2)-[r:PREREQUISITES {`OR`: [x IN u1.prerequisite_3 WHERE x <> u2.code], `AND_1`:u1.prerequisite_1,`AND_2`:u1.prerequisite_2 }]->(u1)
+        </pre>
+      </figure>
+      <figcaption>Create relationships between units and its third prerequisites requirement.Query 3</figcaption>
+
+    </div>
+  </slide>
+
+
+  <slide class="row-fluid">
+    <div class="col-sm-6">
+      <h3>Graph Inspection</h3>
+      <p>Let's explore the relationship between units. In this slide, we inspect units that:
+      </p>
+       <ul>
+          <li> has no prerequisite</li>
+          <li> has a prohibition list </li>
+          <li> has a list of prerequisites units linked by OR operators </li>
+          <li> has a list of prerequisites units linked by AND and OR operators</li>
+      </ul>
+       <p>If units don't not have prerequisite_1 then prerequisite_2 and prerequisite_3 don't exist. If units don't have prerequisite_2 then prerequisite_3 don't exist.
+      </p>
+	  </div>
+	  <div class="col-sm-6">
+      <figure>
+        <pre class="pre-scrollable code runnable">
+        MATCH (u:Unit)
+        WHERE NOT exists(u.prerequisite_1) AND NOT exists(u.prerequisite_2) AND NOT exists(u.prerequisite_3)
+        RETURN u
+        </pre>
+        <figcaption>Check all units with no prerequisites</figcaption>
+      </figure>
+
+        <figure>
+        <pre class="pre-scrollable code runnable">
+        MATCH (u:Unit)
+        WHERE exists(u.prohibited)
+        RETURN u
+        </pre>
+        <figcaption>Check all unit with prohibited requiremnet</figcaption>
+      </figure>
+
+      <figure>
+        <pre class="pre-scrollable code runnable">
+        MATCH (u:Unit)
+        WHERE exists(u.prerequisite_1) AND size(u.prerequisite_1) >1 AND NOT EXISTS(u.prerequisite_2) 
+        RETURN u
+        </pre>
+        <figcaption>Check units has a list of prerequisites units linked ONLY by OR operators</figcaption>
+      </figure>
+ 
+     <figure>
+        <pre class="pre-scrollable code runnable">
+        Match (u:Unit)
+        WHERE (size(u.prerequisite_1) >1 OR size(u.prerequisite_2)>1) AND exists(u.prerequisite_2) 
+        RETURN u
+        </pre>
+        <figcaption>Check units has a list of prerequisites units linked by AND and OR operators</figcaption>
+      </figure>
+    </div>
+  </slide>
+
+
+<slide class="row-fluid">
+    <div class="col-sm-4">
+      <h3> Prohibition Rule </h3>
+      <p>
+      We can check if a student can enrol an unit based on its prohibition rules.
+      </p>
+          <p>
+      Example: Student with student ID 001 has taken two units: ACCT1006 and CLAW1001. Student cannot enrol ACCT1002 but they can enrol CLAW1003.
+      </p>
+    
+    </div>
+
+    <div class="col-sm-8">
+        <figure>
+        <pre class="pre-scrollable code runnable" >
+        Create(s1:Student {name: "Nathan Lee", studentId: "001", unitCompleted:["ACCT1006", "CLAW1003"],degree: "Bachelor of ABC"})
+        Create(s2:Student {name: "Elisa Lee", studentId: "002", unitCompleted:["DATA1001", "ACCT1001", "ACCT1002","MATH1004","BANK2011", "WORK2203","WORK2204","WORK2205" ,"FINC2011","BUSS1020","QBUS3330","QBUS2310","DATA2002"], degree: "Bachelor of ABC" })
+        Create(s3:Student {name: "Tyson Tong", studentId: "003", unitCompleted:["DATA1001", "BANK2011", "ACCT1001", "ACCT1002", "ACCT2012","QBUS3600"], degree: "Bachelor of ABC"})
+        Create(s4:Student {name: "Linh Nguyen", studentId: "004", unitCompleted:["DATA1001","BUSS1020", "BANK2011", "ACCT1001", "ACCT1002", "ACCT2012","QBUS3600","MATH1004","INFO1103"], degree: "Bachelor of ABC"})
+        Create(s5:Student {name: "Minh Nguyen", studentId: "005", unitCompleted:["DATA1001", "BANK2011", "ACCT1001", "ACCT1002", "ACCT2012","QBUS3600","MATH1004","INFO1103","INFO1105"], degree: "Bachelor of ABC"})
+        </pre>
+      </figure>
+      <figcaption>Insert student information to nodes </figcaption>
+
+     <figure>
+        <pre class="pre-scrollable code runnable" >
+       Match (n:Student), (u:Unit) WHERE u.code IN  n.unitCompleted CREATE (n) -[r:COMPLETED] -> (u)
+        </pre>
+      </figure>
+      <figcaption>Create relationship between student and completed units</figcaption>
+      </br>
+
+     <figure>
+        <pre class="pre-scrollable code runnable" >
+       Match (s:Student), (d:Degree) WHERE s.degree = d.name CREATE (s) -[r:DOING] -> (d)
+        </pre>
+      </figure>
+      <figcaption>Create relationship between student and degree</figcaption>
+       </br>
+      <label>Enter unit code </label>
+      <input value-for="u1"  id="u1" class="form-control" value="ACCT1002" size="25">
+
+      <label>Enter student code </label>
+      <input value-for="s1"  id="s1" class="form-control" value="001" size="25">
+
+  
+       <figure>
+        <pre class="pre-scrollable code runnable" >
+        MATCH  (u2)-[r:PROHIBITED]->(:Unit {code:'<span value-key="u1">ACCT1002</span>'})
+        WITH collect(u2) as prohibited
+        MATCH (u1:Unit)-[r:COMPLETED]-(s:Student{studentId:'<span value-key="s1">001</span>'})
+        RETURN ANY(result in collect((u1 IN prohibited)) WHERE result = true) AS CannotEnrol
+        </pre>
+      </figure>
+      <figcaption>Check if student can enrol a class based on it prohibited rule</figcaption>
+
+    </div>
+  </slide>
+
+
+  <slide class="row-fluid">
+    <div class="col-sm-3">
+      <h3>Prerequisite Rule</h3>
+      <p> Check if a student can enrol in a class based on its prerequisites rule. Example: Student with student ID 004 will:
+         <ul>
+          <li> satisfy the prerequisites of a unit QBUS3330 with only OR linked prerequisites</li>
+          <li> satisfy the prerequisites of another unit ACCT2011 with both AND and OR linked prerequisites; </li>
+          <li> does not satisfy the prerequisites of a third unit COMP3927 with both AND and OR linked prerequisites. </li>
+
+      </ul>
+
+      </p>
+    </div>
+
+    <div class="col-sm-9">
+    <label>Enter unit code </label>
+    <input value-for="u1"  id="u1" class="form-control" value="QBUS3330" size="25">
+    <label>Enter student code </label>
+    <input value-for="s1"  id="s1" class="form-control" value="004" size="25">
+      <figure>
+        <pre class="pre-scrollable code runnable" >
+        MATCH (s:Student{studentId:'<span value-key="s1">004</span>'}),(u1:Unit{code: '<span value-key="u1">QBUS3330</span>'})
+        RETURN
+        CASE
+        WHEN NOT EXISTS(u1.prerequisite_1) THEN true
+        WHEN EXISTS (u1.prerequisite_1) AND NOT EXISTS(u1.prerequisite_2) AND NOT EXISTS(u1.prerequisite_3) AND ANY(unit IN s.unitCompleted WHERE (unit IN u1.prerequisite_1)) THEN true
+        WHEN EXISTS (u1.prerequisite_1) AND EXISTS(u1.prerequisite_2) AND NOT EXISTS(u1.prerequisite_3) AND ANY(unit IN s.unitCompleted WHERE unit IN u1.prerequisite_1) AND ANY(unit IN s.unitCompleted WHERE unit IN u1.prerequisite_2) THEN TRUE
+        WHEN EXISTS (u1.prerequisite_1) AND EXISTS(u1.prerequisite_2) AND EXISTS(u1.prerequisite_3) AND ANY(unit IN s.unitCompleted WHERE unit IN u1.prerequisite_1) AND ANY(unit IN s.unitCompleted WHERE unit IN u1.prerequisite_2) AND ANY(unit IN s.unitCompleted WHERE unit IN u1.prerequisite_3) THEN TRUE
+        ELSE FALSE
+        END AS `Student satisfied prerequisite requirement`
+        </pre>
+      </figure>
+      <figcaption> Check if a student satisfy prerequisite requirement</figcaption>
+    </div>
+  </slide>
+
+
+  <slide class="row-fluid">
+    <div class="col-sm-3">
+      <h3>Check if a student satisfied credit requirements to graduate</h3>
+      <p>Students need to complete a total of 90 credits, comprising 30 credits from level 1 units, 24 credits from level 2 units, 24 credits from level 1 units.
+      This slide helps user checks if a student satisfied credits requirements. Query will print out a list of boolean value.
+       <ul>
+          <li> First value checks whether a student meets total credit requirements.</li>
+          <li> Second value checks whether a student meets first level credits requirements.  </li>
+          <li> Third value checks whether a students meet second level credits requirements. </li>
+          <li> Fourth value checks whether a students meet third level credits requirements. </li>
+      </ul>
+
+      Example, student with ID 002 meets all degree requirements except third level credits requirements.
+      </p>
+
+    </div>
+
+    <div class="col-sm-9">
+      <label>Enter student id </label>
+    <input value-for="s1"  id="s1" class="form-control" value="002" size="25">
+      <figure>
+        <pre class="pre-scrollable code runnable" >
+        MATCH (u:Unit)-[:COMPLETED]-(s:Student{studentId:'<span value-key="s1">002</span>'})
+        RETURN sum(u.credit)>= 90 AS result
+        UNION ALL
+        MATCH (u1:Unit{level:"1"})-[:COMPLETED]-(s:Student{studentId:'<span value-key="s1">002</span>'})
+        RETURN 
+        CASE
+        WHEN size(collect(u1)) = 0 then false 
+        WHEN  size(collect(u1)) > 0 then sum(u1.credit) >= 30
+        END as result
+        UNION ALL
+        MATCH (u2:Unit{level:"2"})-[:COMPLETED]-(s:Student{studentId:'<span value-key="s1">002</span>'})
+        RETURN 
+        CASE
+        WHEN size(collect(u2)) = 0 then false 
+        WHEN  size(collect(u2)) > 0 then sum(u2.credit) >= 24
+        END as result
+        UNION ALL
+        MATCH (u3:Unit{level:"3"})-[:COMPLETED]-(s:Student{studentId:'<span value-key="s1">002</span>'})
+        RETURN 
+        CASE
+        WHEN size(collect(u3)) = 0 then false 
+        WHEN  size(collect(u3)) > 0 then sum(u3.credit) >= 24
+        END as result
+        </pre>
+      </figure>
+      <figcaption>Check if student satisfied credit requirements to graduate </figcaption>
+    </div>
+  </slide>
+
+  <slide class="row-fluid">
+    <div class="col-sm-3">
+    <label>Enter unit code</label>
+    <input value-for="u1"  id="u1" class="form-control" value="BANK3600" size="25">
+      <h3>Find all 1000 level indirect prerequisite units of a given unit</h3>
+      <p>
+      Example: BANK3600 has a chain length of 3 to its level 1's indirect prequisites. ACCT3031 has a chain length of 2 to its level 1's indirect prerequisite.
+      </p>
+    </div>
+    <div class="col-sm-9">
+      <figure>
+        <pre class="pre-scrollable code runnable">
+        MATCH path = (n:Unit {level:"1"})-[r:PREREQUISITES*2..]->(b:Unit{code:'<span value-key="u1">BANK3600</span>'}) RETURN path
+        </pre>
+      </figure>
+      <figcaption>Find all 1000 level indirect prerequisite units of a given unit</figcaption>
+    </div>
+  </slide>
+
+    <slide class="row-fluid">
+    <div class="col-sm-3">
+      <h3>Foundational Unit</h3>
+      <p>
+      Find the unit(s) appearing in most other unit’s direct or indirect prerequisite list
+      </p>
+    </div>
+    <div class="col-sm-9">
+      <figure>
+        <pre class="pre-scrollable code runnable">
+        MATCH (n:Unit)-[r:PREREQUISITES*1..]->(b:Unit) RETURN n.code as Unit, count(n) as Count ORDER BY Count DESC LIMIT 1
+        </pre>
+      </figure>
+      <figcaption>Find the unit(s) appearing in most other unit’s direct or indirect prerequisite list</figcaption>
+    </div>
+  </slide>
+
+  <slide class="row-fluid">
+    <div class="col-sm-3">
+      <h3>Clear the graph</h3>
+      <p> Delete all the nodes and their relationship
+      </p>
+    </div>
+
+    <div class="col-sm-9">
+      <figure>
+        <pre class="pre-scrollable code runnable" >
+        MATCH (n) DETACH DELETE (n)
+        </pre>
+      </figure>
+      <figcaption>Delete all nodes and relationships</figcaption>
+    </div>
+  </slide>
+</carousel>
+</article>
